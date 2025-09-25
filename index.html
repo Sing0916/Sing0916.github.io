@@ -59,7 +59,7 @@
     <button id="exportButton">Export</button>
     <script>
         // Version number
-        const versionNumber = "v1.0";
+        const versionNumber = "v1.1";
 
         // Screen dimensions
         const SCREEN_WIDTH = 980;
@@ -113,33 +113,34 @@
                 this.anchorCells = anchorCells;
             }
 
-            draw(scrollY = 0) {
+            draw(scrollY = 0, buffer = null) {
+                let target = buffer || window;
                 let adjustedY = this.isPalette ? this.pos[1] - scrollY : this.pos[1];
                 // Draw cells
                 for (let [dx, dy] of this.shape) {
-                    fill(this.color);
-                    stroke(0);
-                    strokeWeight(1);
-                    rect(this.pos[0] + dx * CELL_SIZE, adjustedY + dy * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                    target.fill(this.color);
+                    target.stroke(0);
+                    target.strokeWeight(1);
+                    target.rect(this.pos[0] + dx * CELL_SIZE, adjustedY + dy * CELL_SIZE, CELL_SIZE, CELL_SIZE);
                 }
                 // Draw border
                 let shapeSet = new Set(this.shape.map(([dx, dy]) => `${dx},${dy}`));
                 for (let [dx, dy] of this.shape) {
                     let x = this.pos[0] + dx * CELL_SIZE;
                     let y = adjustedY + dy * CELL_SIZE;
-                    stroke(BLACK);
-                    strokeWeight(2);
+                    target.stroke(BLACK);
+                    target.strokeWeight(2);
                     if (!shapeSet.has(`${dx},${dy - 1}`)) {
-                        line(x, y, x + CELL_SIZE, y);
+                        target.line(x, y, x + CELL_SIZE, y);
                     }
                     if (!shapeSet.has(`${dx},${dy + 1}`)) {
-                        line(x, y + CELL_SIZE, x + CELL_SIZE, y + CELL_SIZE);
+                        target.line(x, y + CELL_SIZE, x + CELL_SIZE, y + CELL_SIZE);
                     }
                     if (!shapeSet.has(`${dx - 1},${dy}`)) {
-                        line(x, y, x, y + CELL_SIZE);
+                        target.line(x, y, x, y + CELL_SIZE);
                     }
                     if (!shapeSet.has(`${dx + 1},${dy}`)) {
-                        line(x + CELL_SIZE, y, x + CELL_SIZE, y + CELL_SIZE);
+                        target.line(x + CELL_SIZE, y, x + CELL_SIZE, y + CELL_SIZE);
                     }
                 }
                 // Draw name
@@ -150,11 +151,11 @@
                     let maxY = Math.max(...this.anchorCells.map(([dx, dy]) => dy));
                     let anchorX = this.pos[0] + (minX + maxX) * CELL_SIZE / 2;
                     let anchorY = adjustedY + (minY + maxY) * CELL_SIZE / 2;
-                    fill(WHITE);
-                    noStroke();
-                    textAlign(CENTER, CENTER);
-                    textSize(16);
-                    text(this.name, anchorX + CELL_SIZE / 2, anchorY + CELL_SIZE / 2);
+                    target.fill(WHITE);
+                    target.noStroke();
+                    target.textAlign(CENTER, CENTER);
+                    target.textSize(16);
+                    target.text(this.name, anchorX + CELL_SIZE / 2, anchorY + CELL_SIZE / 2);
                 }
             }
 
@@ -363,10 +364,9 @@
             paletteBlocks.forEach(block => {
                 let originalY = block.pos[1];
                 block.pos[1] -= paletteScrollY;
-                paletteBuffer.push();
-                paletteBuffer.translate(0, -paletteScrollY);
-                block.draw(0); // Draw with scrollY=0 since translation is handled
-                paletteBuffer.pop();
+                if (block.pos[1] + block.getHeight() >= PALETTE_Y && block.pos[1] <= PALETTE_Y + PALETTE_HEIGHT) {
+                    block.draw(0, paletteBuffer);
+                }
                 block.pos[1] = originalY;
             });
             // Draw buffer to canvas at correct position
@@ -403,7 +403,9 @@
             }));
             let jsonStr = JSON.stringify(data);
             let encoded = btoa(unescape(encodeURIComponent(jsonStr)));
-            navigator.clipboard.writeText(encoded).then(() => {
+            navigator.clipboard.writeText(encoded).ទ
+
+            .then(() => {
                 popup = { message: "Exported to clipboard!", startTime: Date.now(), duration: 2000 };
             });
         }
@@ -477,7 +479,7 @@
 
         function mouseWheel(event) {
             if (mouseX >= PALETTE_X && mouseX <= PALETTE_X + PALETTE_WIDTH && mouseY >= PALETTE_Y && mouseY <= PALETTE_Y + PALETTE_HEIGHT) {
-                paletteScrollY += event.delta * PALETTE_SCROLL_SPEED / 100; // Reversed scroll direction
+                paletteScrollY += event.delta * PALETTE_SCROLL_SPEED / 100;
                 paletteScrollY = constrain(paletteScrollY, 0, maxScrollY);
             }
         }
