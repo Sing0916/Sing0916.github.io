@@ -61,11 +61,10 @@
     <button id="exportButton">Export</button>
     <script>
         // Version number
-        const versionNumber = "v1.3";
+        const versionNumber = "v1.4";
 
         // Grid settings
         const GRID_SIZE = 9;
-        const CELL_SIZE = 50;
 
         // Palette settings
         const PALETTE_SCROLL_SPEED = 50;
@@ -255,35 +254,28 @@
 
         // Palette blocks
         const paletteBlocks = [
-            new Block([[0,0], [1,0], [2,0], [0,1]], RED, [50, 0], "衝鋒槍", [[1,0]], true),
-            new Block([[0,0], [1,0], [2,0], [0,1]], RED, [50, 0], "霰彈槍", [[1,0]], true),
-            new Block([[0,0], [1,0], [2,0], [3,0], [1,1]], RED, [50, 0], "突擊步槍", [[1,0], [2,0]], true),
-            new Block([[0,0], [1,0], [0,1]], RED, [50, 0], "手槍", [[0,0], [1,0]], true),
-            new Block([[0,0], [0,1], [0,2], [0,3], [1,3]], RED, [50, 0], "狙擊步槍", [[0,3], [1,3]], true),
-            new Block([[1,0], [1,1], [1,2], [1,3], [0,2]], RED, [50, 0], "火焰嘖射器", [[1,2], [0,2]], true),
-            new Block([[0,1], [1,1], [2,1], [3,1], [3,0]], RED, [50, 0], "雷射炮", [[1,1], [2,1]], true),
-            new Block([[0,0], [0,1], [1,0], [1,1]], RED, [50, 0], "手榴彈", [[0,0], [0,1], [1,0], [1,1]], true),
-            new Block([[0,0], [0,1]], PURPLE, [50, 0], "勳章", [[0,0], [0,1]], true),
-            new Block([[0,0]], PURPLE, [50, 0], "金幣", [[0,0]], true),
-            new Block([[0,0], [1,0], [0,1]], PURPLE, [50, 0], "槍托", [[0,0], [1,0]], true),
-            new Block([[0,0], [1,0], [2,0]], PURPLE, [50, 0], "尖刺路障", [[0,0], [1,0], [2,0]], true),
-            new Block([[0,0], [0,1], [1,0], [1,1]], PURPLE, [50, 0], "工具組", [[0,0], [0,1], [1,0], [1,1]], true),
-            new Block([[0,0], [0,1], [0,2]], PURPLE, [50, 0], "消音器", [[0,0], [0,1], [0,2]], true),
-            new Block([[0,0], [1,0], [2,0]], PURPLE, [50, 0], "瞄準鏡", [[0,0], [1,0], [2,0]], true),
-            new Block([[0,0], [0,1], [0,2]], PURPLE, [50, 0], "興奮劑", [[0,0], [0,1], [0,2]], true)
+            new Block([[0,0], [1,0], [2,0], [0,1]], RED, [0, 0], "衝鋒槍", [[1,0]], true),
+            new Block([[0,0], [1,0], [2,0], [0,1]], RED, [0, 0], "霰彈槍", [[1,0]], true),
+            new Block([[0,0], [1,0], [2,0], [3,0], [1,1]], RED, [0, 0], "突擊步槍", [[1,0], [2,0]], true),
+            new Block([[0,0], [1,0], [0,1]], RED, [0, 0], "手槍", [[0,0], [1,0]], true),
+            new Block([[0,0], [0,1], [0,2], [0,3], [1,3]], RED, [0, 0], "狙擊步槍", [[0,3], [1,3]], true),
+            new Block([[1,0], [1,1], [1,2], [1,3], [0,2]], RED, [0, 0], "火焰嘖射器", [[1,2], [0,2]], true),
+            new Block([[0,1], [1,1], [2,1], [3,1], [3,0]], RED, [0, 0], "雷射炮", [[1,1], [2,1]], true),
+            new Block([[0,0], [0,1], [1,0], [1,1]], RED, [0, 0], "手榴彈", [[0,0], [0,1], [1,0], [1,1]], true),
+            new Block([[0,0], [0,1]], PURPLE, [0, 0], "勳章", [[0,0], [0,1]], true),
+            new Block([[0,0]], PURPLE, [0, 0], "金幣", [[0,0]], true),
+            new Block([[0,0], [1,0], [0,1]], PURPLE, [0, 0], "槍托", [[0,0], [1,0]], true),
+            new Block([[0,0], [1,0], [2,0]], PURPLE, [0, 0], "尖刺路障", [[0,0], [1,0], [2,0]], true),
+            new Block([[0,0], [0,1], [1,0], [1,1]], PURPLE, [0, 0], "工具組", [[0,0], [0,1], [1,0], [1,1]], true),
+            new Block([[0,0], [0,1], [0,2]], PURPLE, [0, 0], "消音器", [[0,0], [0,1], [0,2]], true),
+            new Block([[0,0], [1,0], [2,0]], PURPLE, [0, 0], "瞄準鏡", [[0,0], [1,0], [2,0]], true),
+            new Block([[0,0], [0,1], [0,2]], PURPLE, [0, 0], "興奮劑", [[0,0], [0,1], [0,2]], true)
         ];
 
         // Block definitions for import validation
         const blockDefinitions = {};
         paletteBlocks.forEach(block => {
             blockDefinitions[block.name] = [block.shape, block.color, block.anchorCells];
-        });
-
-        // Arrange palette blocks (relative positions)
-        let currentY = PALETTE_BLOCK_SPACING;
-        paletteBlocks.forEach(block => {
-            block.pos[1] = currentY;
-            currentY += block.getHeight() + PALETTE_BLOCK_SPACING;
         });
 
         // Placed blocks
@@ -305,6 +297,7 @@
         // Layout variables
         let SCREEN_WIDTH;
         let SCREEN_HEIGHT;
+        let CELL_SIZE;
         let GRID_X;
         let GRID_Y;
         let PALETTE_X;
@@ -318,8 +311,10 @@
 
         function setLayout() {
             let isMobile = window.innerWidth < 768;
+            SCREEN_WIDTH = isMobile ? window.innerWidth : 980;
             if (isMobile) {
-                SCREEN_WIDTH = window.innerWidth;
+                CELL_SIZE = Math.floor(SCREEN_WIDTH * 0.8 / GRID_SIZE);
+                let gridWidth = CELL_SIZE * GRID_SIZE;
                 let currentY = 10;
                 COUNT_X = 10;
                 COUNT_Y = currentY;
@@ -328,9 +323,9 @@
                 currentY += COUNT_HEIGHT + 20;
                 let buttonsY = currentY;
                 currentY += 60;
-                GRID_X = Math.max(10, (SCREEN_WIDTH - GRID_SIZE * CELL_SIZE) / 2);
+                GRID_X = (SCREEN_WIDTH - gridWidth) / 2;
                 GRID_Y = currentY;
-                currentY += GRID_SIZE * CELL_SIZE + 20;
+                currentY += gridWidth + 20;
                 PALETTE_X = 10;
                 PALETTE_Y = currentY;
                 PALETTE_WIDTH = SCREEN_WIDTH - 20;
@@ -351,7 +346,7 @@
                 exportButton.style.width = buttonWidth + 'px';
                 exportButton.style.height = '40px';
             } else {
-                SCREEN_WIDTH = 980;
+                CELL_SIZE = 50;
                 SCREEN_HEIGHT = 650;
                 GRID_X = 300;
                 GRID_Y = 75;
@@ -376,6 +371,13 @@
                 exportButton.style.width = '100px';
                 exportButton.style.height = '40px';
             }
+
+            // Arrange palette blocks (relative positions)
+            let paletteCurrentY = PALETTE_BLOCK_SPACING;
+            paletteBlocks.forEach(block => {
+                block.pos[1] = paletteCurrentY;
+                paletteCurrentY += block.getHeight() + PALETTE_BLOCK_SPACING;
+            });
 
             // Center palette blocks horizontally
             paletteBlocks.forEach(block => {
@@ -404,6 +406,7 @@
             window.addEventListener('resize', () => {
                 let old_GRID_X = GRID_X;
                 let old_GRID_Y = GRID_Y;
+                let old_CELL_SIZE = CELL_SIZE;
                 setLayout();
                 resizeCanvas(SCREEN_WIDTH, SCREEN_HEIGHT);
                 paletteBuffer = createGraphics(PALETTE_WIDTH, PALETTE_HEIGHT);
@@ -411,8 +414,8 @@
                 // Update placed blocks positions
                 placedBlocks.forEach(block => {
                     if (block.placed) {
-                        let cellX = Math.floor((block.pos[0] - old_GRID_X) / CELL_SIZE);
-                        let cellY = Math.floor((block.pos[1] - old_GRID_Y) / CELL_SIZE);
+                        let cellX = Math.floor((block.pos[0] - old_GRID_X) / old_CELL_SIZE);
+                        let cellY = Math.floor((block.pos[1] - old_GRID_Y) / old_CELL_SIZE);
                         block.pos[0] = GRID_X + cellX * CELL_SIZE;
                         block.pos[1] = GRID_Y + cellY * CELL_SIZE;
                     }
@@ -568,7 +571,9 @@
             }
             for (let block of [...paletteBlocks].reverse()) {
                 if (block.checkClick(mouseX, mouseY, paletteScrollY)) {
-                    let newBlock = new Block(block.shape, block.color, [block.pos[0], PALETTE_Y + block.pos[1] - paletteScrollY], block.name, block.anchorCells, false);
+                    let newX = PALETTE_X + block.pos[0];
+                    let newY = PALETTE_Y + block.pos[1] - paletteScrollY;
+                    let newBlock = new Block(block.shape, block.color, [newX, newY], block.name, block.anchorCells, false);
                     placedBlocks.push(newBlock);
                     currentDragging = newBlock;
                     newBlock.startDrag(mouseX, mouseY);
