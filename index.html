@@ -61,7 +61,7 @@
     <button id="exportButton">Export</button>
     <script>
         // Version number
-        const versionNumber = "v1.6";
+        const versionNumber = "v1.7";
 
         // Grid settings
         const GRID_SIZE = 9;
@@ -103,14 +103,13 @@
             draw(scrollY = 0, buffer = null) {
                 let target = buffer || window;
                 let adjustedY = this.isPalette ? this.pos[1] - scrollY : this.pos[1];
-                // Draw cells
+                // Draw cells without individual borders
+                target.noStroke();
+                target.fill(this.color);
                 for (let [dx, dy] of this.shape) {
-                    target.fill(this.color);
-                    target.stroke(0);
-                    target.strokeWeight(1);
                     target.rect(this.pos[0] + dx * CELL_SIZE, adjustedY + dy * CELL_SIZE, CELL_SIZE, CELL_SIZE);
                 }
-                // Draw border
+                // Draw outer border for the whole block
                 let shapeSet = new Set(this.shape.map(([dx, dy]) => `${dx},${dy}`));
                 for (let [dx, dy] of this.shape) {
                     let x = this.pos[0] + dx * CELL_SIZE;
@@ -314,7 +313,7 @@
             isMobile = window.innerWidth < 768;
             SCREEN_WIDTH = isMobile ? window.innerWidth : 980;
             if (isMobile) {
-                CELL_SIZE = Math.floor(SCREEN_WIDTH * 0.7 / GRID_SIZE);
+                CELL_SIZE = Math.floor(SCREEN_WIDTH * 0.8 / GRID_SIZE);
                 let gridWidth = CELL_SIZE * GRID_SIZE;
                 let currentY = 10;
                 COUNT_X = 10;
