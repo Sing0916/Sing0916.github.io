@@ -5,13 +5,13 @@
     <title>Salvation Breakers Helper</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
     <link rel="icon" href="doro.ico" type="image/x-icon">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
             margin: 0;
             background-color: rgb(20, 20, 20);
             font-family: 'Microsoft JhengHei', Arial, sans-serif;
             color: white;
-            overflow: hidden;
         }
         canvas {
             display: block;
@@ -25,6 +25,7 @@
             cursor: pointer;
             font-family: 'Microsoft JhengHei', Arial, sans-serif;
             font-size: 16px;
+            z-index: 5;
         }
         button:hover {
             background-color: rgb(180, 180, 180);
@@ -60,31 +61,17 @@
     <button id="exportButton">Export</button>
     <script>
         // Version number
-        const versionNumber = "v1.2";
-
-        // Screen dimensions
-        const SCREEN_WIDTH = 980;
-        const SCREEN_HEIGHT = 650;
+        const versionNumber = "v1.3";
 
         // Grid settings
         const GRID_SIZE = 9;
         const CELL_SIZE = 50;
-        const GRID_X = 300;
-        const GRID_Y = 75;
 
         // Palette settings
-        const PALETTE_WIDTH = 270;
-        const PALETTE_HEIGHT = SCREEN_HEIGHT - 70;
-        const PALETTE_X = 10;
-        const PALETTE_Y = 10;
         const PALETTE_SCROLL_SPEED = 50;
         const PALETTE_BLOCK_SPACING = 10;
 
         // Count panel settings
-        const COUNT_WIDTH = 200;
-        const COUNT_HEIGHT = SCREEN_HEIGHT - 70;
-        const COUNT_X = GRID_X + GRID_SIZE * CELL_SIZE + 20;
-        const COUNT_Y = 10;
         const COUNT_TEXT_SPACING = 30;
 
         // Colors
@@ -161,12 +148,13 @@
             }
 
             checkClick(mx, my, scrollY = 0) {
-                let adjustedY = this.isPalette ? this.pos[1] - scrollY : this.pos[1];
+                let adjustedX = this.isPalette ? PALETTE_X + this.pos[0] : this.pos[0];
+                let adjustedY = this.isPalette ? PALETTE_Y + this.pos[1] - scrollY : this.pos[1];
                 for (let [dx, dy] of this.shape) {
-                    let rectX = this.pos[0] + dx * CELL_SIZE;
+                    let rectX = adjustedX + dx * CELL_SIZE;
                     let rectY = adjustedY + dy * CELL_SIZE;
                     if (mx >= rectX && mx < rectX + CELL_SIZE && my >= rectY && my < rectY + CELL_SIZE) {
-                        if (this.isPalette && (rectY < PALETTE_Y || rectY > PALETTE_Y + PALETTE_HEIGHT - CELL_SIZE)) {
+                        if (this.isPalette && (rectY < PALETTE_Y || rectY > PALETTE_Y + PALETTE_HEIGHT - CELL_SIZE || rectX < PALETTE_X || rectX > PALETTE_X + PALETTE_WIDTH - CELL_SIZE)) {
                             return false;
                         }
                         return true;
@@ -256,6 +244,13 @@
                 let maxY = Math.max(...this.shape.map(([dx, dy]) => dy));
                 return (maxY - minY + 1) * CELL_SIZE;
             }
+
+            getWidth() {
+                if (!this.shape.length) return 0;
+                let minX = Math.min(...this.shape.map(([dx, dy]) => dx));
+                let maxX = Math.max(...this.shape.map(([dx, dy]) => dx));
+                return (maxX - minX + 1) * CELL_SIZE;
+            }
         }
 
         // Palette blocks
@@ -284,8 +279,8 @@
             blockDefinitions[block.name] = [block.shape, block.color, block.anchorCells];
         });
 
-        // Arrange palette blocks
-        let currentY = PALETTE_Y + PALETTE_BLOCK_SPACING;
+        // Arrange palette blocks (relative positions)
+        let currentY = PALETTE_BLOCK_SPACING;
         paletteBlocks.forEach(block => {
             block.pos[1] = currentY;
             currentY += block.getHeight() + PALETTE_BLOCK_SPACING;
@@ -296,23 +291,133 @@
 
         // Scroll variables
         let paletteScrollY = 0;
-        const maxScrollY = Math.max(0, paletteBlocks[paletteBlocks.length - 1].pos[1] + paletteBlocks[paletteBlocks.length - 1].getHeight() + PALETTE_BLOCK_SPACING - PALETTE_HEIGHT);
+        let maxScrollY;
+        let countScrollY = 0;
+        let maxCountScrollY = 0;
 
         // Popup
         let popup = null;
 
-        // Graphics buffer for palette
+        // Graphics buffer for palette and count
         let paletteBuffer;
+        let countBuffer;
+
+        // Layout variables
+        let SCREEN_WIDTH;
+        let SCREEN_HEIGHT;
+        let GRID_X;
+        let GRID_Y;
+        let PALETTE_X;
+        let PALETTE_Y;
+        let PALETTE_WIDTH;
+        let PALETTE_HEIGHT;
+        let COUNT_X;
+        let COUNT_Y;
+        let COUNT_WIDTH;
+        let COUNT_HEIGHT;
+
+        function setLayout() {
+            let isMobile = window.innerWidth < 768;
+            if (isMobile) {
+                SCREEN_WIDTH = window.innerWidth;
+                let currentY = 10;
+                COUNT_X = 10;
+                COUNT_Y = currentY;
+                COUNT_WIDTH = SCREEN_WIDTH - 20;
+                COUNT_HEIGHT = 200;
+                currentY += COUNT_HEIGHT + 20;
+                let buttonsY = currentY;
+                currentY += 60;
+                GRID_X = Math.max(10, (SCREEN_WIDTH - GRID_SIZE * CELL_SIZE) / 2);
+                GRID_Y = currentY;
+                currentY += GRID_SIZE * CELL_SIZE + 20;
+                PALETTE_X = 10;
+                PALETTE_Y = currentY;
+                PALETTE_WIDTH = SCREEN_WIDTH - 20;
+                PALETTE_HEIGHT = 300;
+                currentY += PALETTE_HEIGHT + 20;
+                SCREEN_HEIGHT = currentY;
+
+                // Position buttons
+                let buttonWidth = (SCREEN_WIDTH - 30) / 2;
+                let importButton = document.getElementById('importButton');
+                importButton.style.left = '10px';
+                importButton.style.top = buttonsY + 'px';
+                importButton.style.width = buttonWidth + 'px';
+                importButton.style.height = '40px';
+                let exportButton = document.getElementById('exportButton');
+                exportButton.style.left = (10 + buttonWidth + 10) + 'px';
+                exportButton.style.top = buttonsY + 'px';
+                exportButton.style.width = buttonWidth + 'px';
+                exportButton.style.height = '40px';
+            } else {
+                SCREEN_WIDTH = 980;
+                SCREEN_HEIGHT = 650;
+                GRID_X = 300;
+                GRID_Y = 75;
+                PALETTE_X = 10;
+                PALETTE_Y = 10;
+                PALETTE_WIDTH = 270;
+                PALETTE_HEIGHT = SCREEN_HEIGHT - 70;
+                COUNT_X = GRID_X + GRID_SIZE * CELL_SIZE + 20;
+                COUNT_Y = 10;
+                COUNT_WIDTH = 200;
+                COUNT_HEIGHT = SCREEN_HEIGHT - 70;
+
+                // Position buttons (match CSS)
+                let importButton = document.getElementById('importButton');
+                importButton.style.left = '380px';
+                importButton.style.top = '545px';
+                importButton.style.width = '100px';
+                importButton.style.height = '40px';
+                let exportButton = document.getElementById('exportButton');
+                exportButton.style.left = '570px';
+                exportButton.style.top = '545px';
+                exportButton.style.width = '100px';
+                exportButton.style.height = '40px';
+            }
+
+            // Center palette blocks horizontally
+            paletteBlocks.forEach(block => {
+                block.pos[0] = (PALETTE_WIDTH - block.getWidth()) / 2;
+            });
+
+            // Update maxScrollY
+            maxScrollY = Math.max(0, paletteBlocks[paletteBlocks.length - 1].pos[1] + paletteBlocks[paletteBlocks.length - 1].getHeight() + PALETTE_BLOCK_SPACING - PALETTE_HEIGHT);
+        }
+
+        // Initial layout
+        setLayout();
 
         // p5.js setup
         function setup() {
             createCanvas(SCREEN_WIDTH, SCREEN_HEIGHT);
             textFont('Microsoft JhengHei');
-            // Create graphics buffer for palette
+            // Create graphics buffers
             paletteBuffer = createGraphics(PALETTE_WIDTH, PALETTE_HEIGHT);
+            countBuffer = createGraphics(COUNT_WIDTH, COUNT_HEIGHT);
             // Button event listeners
             document.getElementById('importButton').addEventListener('click', importBlocks);
             document.getElementById('exportButton').addEventListener('click', exportBlocks);
+
+            // Add resize listener
+            window.addEventListener('resize', () => {
+                let old_GRID_X = GRID_X;
+                let old_GRID_Y = GRID_Y;
+                setLayout();
+                resizeCanvas(SCREEN_WIDTH, SCREEN_HEIGHT);
+                paletteBuffer = createGraphics(PALETTE_WIDTH, PALETTE_HEIGHT);
+                countBuffer = createGraphics(COUNT_WIDTH, COUNT_HEIGHT);
+                // Update placed blocks positions
+                placedBlocks.forEach(block => {
+                    if (block.placed) {
+                        let cellX = Math.floor((block.pos[0] - old_GRID_X) / CELL_SIZE);
+                        let cellY = Math.floor((block.pos[1] - old_GRID_Y) / CELL_SIZE);
+                        block.pos[0] = GRID_X + cellX * CELL_SIZE;
+                        block.pos[1] = GRID_Y + cellY * CELL_SIZE;
+                    }
+                });
+            });
         }
 
         // p5.js draw
@@ -363,37 +468,50 @@
             paletteBuffer.clear();
             paletteBuffer.background(0, 0, 0, 0); // Transparent background
             paletteBlocks.forEach(block => {
-                let originalY = block.pos[1];
-                block.pos[1] -= paletteScrollY;
-                if (block.pos[1] + block.getHeight() >= PALETTE_Y && block.pos[1] <= PALETTE_Y + PALETTE_HEIGHT) {
-                    block.draw(0, paletteBuffer);
+                let top = block.pos[1] - paletteScrollY;
+                let bottom = top + block.getHeight();
+                if (bottom >= 0 && top < PALETTE_HEIGHT) {
+                    block.draw(paletteScrollY, paletteBuffer);
                 }
-                block.pos[1] = originalY;
             });
             // Draw buffer to canvas at correct position
             image(paletteBuffer, PALETTE_X, PALETTE_Y);
         }
 
         function drawCountPanel() {
-            fill(DARK_GRAY);
-            stroke(LIGHT_GRAY);
-            strokeWeight(2);
-            rect(COUNT_X, COUNT_Y, COUNT_WIDTH, COUNT_HEIGHT);
+            // Calculate counts
             let blockCounts = {};
             placedBlocks.forEach(block => {
                 if (block.placed) {
                     blockCounts[block.name] = (blockCounts[block.name] || 0) + 1;
                 }
             });
-            let y = COUNT_Y + 20;
-            textAlign(LEFT, TOP);
-            textSize(16);
-            fill(WHITE);
-            noStroke();
+            let countItems = Object.keys(blockCounts).length;
+            let totalContentHeight = countItems * COUNT_TEXT_SPACING + 40;
+            maxCountScrollY = Math.max(0, totalContentHeight - COUNT_HEIGHT);
+
+            // Draw background
+            fill(DARK_GRAY);
+            stroke(LIGHT_GRAY);
+            strokeWeight(2);
+            rect(COUNT_X, COUNT_Y, COUNT_WIDTH, COUNT_HEIGHT);
+
+            // Draw to buffer
+            countBuffer.clear();
+            countBuffer.background(0, 0, 0, 0); // Transparent background
+            let y = 20 - countScrollY;
+            countBuffer.textAlign(LEFT, TOP);
+            countBuffer.textSize(16);
+            countBuffer.fill(WHITE);
+            countBuffer.noStroke();
             for (let name in blockCounts) {
-                text(`${name} x ${blockCounts[name]}`, COUNT_X + 10, y);
+                if (y + COUNT_TEXT_SPACING >= 0 && y < COUNT_HEIGHT) {
+                    countBuffer.text(`${name} x ${blockCounts[name]}`, 10, y);
+                }
                 y += COUNT_TEXT_SPACING;
             }
+            // Draw buffer to canvas
+            image(countBuffer, COUNT_X, COUNT_Y);
         }
 
         function exportBlocks() {
@@ -404,8 +522,7 @@
             }));
             let jsonStr = JSON.stringify(data);
             let encoded = btoa(unescape(encodeURIComponent(jsonStr)));
-            navigator.clipboard.writeText(encoded).ទ
-
+            navigator.clipboard.writeText(encoded)
             .then(() => {
                 popup = { message: "Exported to clipboard!", startTime: Date.now(), duration: 2000 };
             });
@@ -442,8 +559,6 @@
         let currentDragging = null;
 
         function mousePressed() {
-            if (mouseX >= 480 && mouseX <= 580 && mouseY >= 545 && mouseY <= 585) return;
-            if (mouseX >= 600 && mouseX <= 700 && mouseY >= 545 && mouseY <= 585) return;
             for (let block of [...placedBlocks].reverse()) {
                 if (block.checkClick(mouseX, mouseY)) {
                     currentDragging = block;
@@ -453,7 +568,7 @@
             }
             for (let block of [...paletteBlocks].reverse()) {
                 if (block.checkClick(mouseX, mouseY, paletteScrollY)) {
-                    let newBlock = new Block(block.shape, block.color, [block.pos[0], block.pos[1] - paletteScrollY], block.name, block.anchorCells, false);
+                    let newBlock = new Block(block.shape, block.color, [block.pos[0], PALETTE_Y + block.pos[1] - paletteScrollY], block.name, block.anchorCells, false);
                     placedBlocks.push(newBlock);
                     currentDragging = newBlock;
                     newBlock.startDrag(mouseX, mouseY);
@@ -465,6 +580,17 @@
         function mouseDragged() {
             if (currentDragging) {
                 currentDragging.drag(mouseX, mouseY);
+            } else {
+                // Scroll palette if dragging in palette area
+                if (mouseX >= PALETTE_X && mouseX < PALETTE_X + PALETTE_WIDTH && mouseY >= PALETTE_Y && mouseY < PALETTE_Y + PALETTE_HEIGHT) {
+                    paletteScrollY -= (mouseY - pmouseY);
+                    paletteScrollY = constrain(paletteScrollY, 0, maxScrollY);
+                }
+                // Scroll count panel if dragging in count area
+                if (mouseX >= COUNT_X && mouseX < COUNT_X + COUNT_WIDTH && mouseY >= COUNT_Y && mouseY < COUNT_Y + COUNT_HEIGHT) {
+                    countScrollY -= (mouseY - pmouseY);
+                    countScrollY = constrain(countScrollY, 0, maxCountScrollY);
+                }
             }
         }
 
@@ -479,9 +605,15 @@
         }
 
         function mouseWheel(event) {
+            // Scroll palette
             if (mouseX >= PALETTE_X && mouseX <= PALETTE_X + PALETTE_WIDTH && mouseY >= PALETTE_Y && mouseY <= PALETTE_Y + PALETTE_HEIGHT) {
                 paletteScrollY += event.delta * PALETTE_SCROLL_SPEED / 100;
                 paletteScrollY = constrain(paletteScrollY, 0, maxScrollY);
+            }
+            // Scroll count panel
+            if (mouseX >= COUNT_X && mouseX <= COUNT_X + COUNT_WIDTH && mouseY >= COUNT_Y && mouseY <= COUNT_Y + COUNT_HEIGHT) {
+                countScrollY += event.delta * PALETTE_SCROLL_SPEED / 100;
+                countScrollY = constrain(countScrollY, 0, maxCountScrollY);
             }
         }
     </script>
