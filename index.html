@@ -61,7 +61,7 @@
     <button id="exportButton">Export</button>
     <script>
         // Version number
-        const versionNumber = "v1.4";
+        const versionNumber = "v1.5";
 
         // Grid settings
         const GRID_SIZE = 9;
@@ -308,18 +308,19 @@
         let COUNT_Y;
         let COUNT_WIDTH;
         let COUNT_HEIGHT;
+        let isMobile;
 
         function setLayout() {
-            let isMobile = window.innerWidth < 768;
+            isMobile = window.innerWidth < 768;
             SCREEN_WIDTH = isMobile ? window.innerWidth : 980;
             if (isMobile) {
-                CELL_SIZE = Math.floor(SCREEN_WIDTH * 0.8 / GRID_SIZE);
+                CELL_SIZE = Math.floor(SCREEN_WIDTH * 0.7 / GRID_SIZE);
                 let gridWidth = CELL_SIZE * GRID_SIZE;
                 let currentY = 10;
                 COUNT_X = 10;
                 COUNT_Y = currentY;
                 COUNT_WIDTH = SCREEN_WIDTH - 20;
-                COUNT_HEIGHT = 200;
+                COUNT_HEIGHT = 100;
                 currentY += COUNT_HEIGHT + 20;
                 let buttonsY = currentY;
                 currentY += 60;
@@ -329,7 +330,7 @@
                 PALETTE_X = 10;
                 PALETTE_Y = currentY;
                 PALETTE_WIDTH = SCREEN_WIDTH - 20;
-                PALETTE_HEIGHT = 300;
+                PALETTE_HEIGHT = 200;
                 currentY += PALETTE_HEIGHT + 20;
                 SCREEN_HEIGHT = currentY;
 
@@ -489,8 +490,12 @@
                     blockCounts[block.name] = (blockCounts[block.name] || 0) + 1;
                 }
             });
-            let countItems = Object.keys(blockCounts).length;
-            let totalContentHeight = countItems * COUNT_TEXT_SPACING + 40;
+            let entries = Object.entries(blockCounts).map(([name, count]) => `${name} x ${count}`);
+
+            let numEntries = entries.length;
+            let numColumns = isMobile ? 2 : 1;
+            let rows = Math.ceil(numEntries / numColumns);
+            let totalContentHeight = rows * COUNT_TEXT_SPACING + 40;
             maxCountScrollY = Math.max(0, totalContentHeight - COUNT_HEIGHT);
 
             // Draw background
@@ -502,14 +507,26 @@
             // Draw to buffer
             countBuffer.clear();
             countBuffer.background(0, 0, 0, 0); // Transparent background
-            let y = 20 - countScrollY;
             countBuffer.textAlign(LEFT, TOP);
             countBuffer.textSize(16);
             countBuffer.fill(WHITE);
             countBuffer.noStroke();
-            for (let name in blockCounts) {
-                if (y + COUNT_TEXT_SPACING >= 0 && y < COUNT_HEIGHT) {
-                    countBuffer.text(`${name} x ${blockCounts[name]}`, 10, y);
+
+            let y = 20 - countScrollY;
+            let index = 0;
+            for (let row = 0; row < rows; row++) {
+                if (y >= COUNT_HEIGHT || y + COUNT_TEXT_SPACING < 0) {
+                    // Skip if row is out of view
+                    index += numColumns;
+                    y += COUNT_TEXT_SPACING;
+                    continue;
+                }
+                for (let col = 0; col < numColumns; col++) {
+                    if (index < numEntries) {
+                        let xPos = (COUNT_WIDTH / numColumns) * col + 10;
+                        countBuffer.text(entries[index], xPos, y);
+                        index++;
+                    }
                 }
                 y += COUNT_TEXT_SPACING;
             }
