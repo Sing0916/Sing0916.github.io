@@ -61,7 +61,7 @@
     <button id="exportButton">Export</button>
     <script>
         // Version number
-        const versionNumber = "v1.5";
+        const versionNumber = "v1.6";
 
         // Grid settings
         const GRID_SIZE = 9;
@@ -403,6 +403,9 @@
             document.getElementById('importButton').addEventListener('click', importBlocks);
             document.getElementById('exportButton').addEventListener('click', exportBlocks);
 
+            // Prevent page scrolling during block drag on mobile
+            document.addEventListener('touchmove', preventScrollDuringDrag, {passive: false});
+
             // Add resize listener
             window.addEventListener('resize', () => {
                 let old_GRID_X = GRID_X;
@@ -422,6 +425,12 @@
                     }
                 });
             });
+        }
+
+        function preventScrollDuringDrag(e) {
+            if (currentDragging && isMobile) {
+                e.preventDefault();
+            }
         }
 
         // p5.js draw
