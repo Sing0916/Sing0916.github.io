@@ -16,13 +16,8 @@
         canvas {
             display: block;
         }
-        .button-container {
-            position: absolute;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
         button {
+            position: absolute;
             background-color: rgb(50, 50, 50);
             color: white;
             border: 2px solid rgb(180, 180, 180);
@@ -31,12 +26,21 @@
             font-family: 'Microsoft JhengHei', Arial, sans-serif;
             font-size: 16px;
             z-index: 5;
-            flex: 1;
-            margin: 0 5px;
-			touch-action: manipulation;
         }
         button:hover {
             background-color: rgb(180, 180, 180);
+        }
+        #importButton {
+            left: 380px;
+            top: 545px;
+            width: 100px;
+            height: 40px;
+        }
+        #exportButton {
+            left: 570px;
+            top: 545px;
+            width: 100px;
+            height: 40px;
         }
         .popup {
             position: absolute;
@@ -50,20 +54,14 @@
             right: 10px;
             z-index: 10;
         }
-		.toggleGridEditButton {
-			background-color: rgb(0, 128, 0);
-		}
     </style>
 </head>
 <body>
-    <div id="buttonContainer" class="button-container">
-        <button id="importButton">Import</button>
-        <button id="exportButton">Export</button>
-        <button id="toggleGridEditButton" class="toggleGridEditButton">Grid Edit: Off</button>
-    </div>
+    <button id="importButton">Import</button>
+    <button id="exportButton">Export</button>
     <script>
         // Version number
-        const versionNumber = "v1.8";
+        const versionNumber = "v1.7";
 
         // Grid settings
         const GRID_SIZE = 9;
@@ -84,11 +82,8 @@
         const RED = [200, 0, 0];
         const PURPLE = [128, 0, 128];
 
-        // Grid occupation (0: empty, 1: occupied, -1: disabled)
+        // Grid occupation (0: empty, 1: occupied)
         let grid = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(0));
-
-        // Grid edit mode
-        let gridEditMode = false;
 
         // Block class
         class Block {
@@ -202,50 +197,12 @@
                     this.setCells(candidateX, candidateY);
                     this.placed = true;
                 } else {
-                    // Check if failure is due to occupied cells (grid value 1)
-                    let canPlaceAfterClearing = true;
-                    let cellsToClear = [];
-                    for (let [dx, dy] of this.shape) {
-                        let gx = candidateX + dx;
-                        let gy = candidateY + dy;
-                        if (gx < 0 || gx >= GRID_SIZE || gy < 0 || gy >= GRID_SIZE || grid[gy][gx] === -1) {
-                            canPlaceAfterClearing = false;
-                            break;
-                        }
-                        if (grid[gy][gx] === 1) {
-                            cellsToClear.push([gx, gy]);
-                        }
-                    }
-                    if (canPlaceAfterClearing) {
-                        // Remove blocks occupying the cells
-                        placedBlocks = placedBlocks.filter(block => {
-                            if (block === this || !block.placed) return true;
-                            let blockX = Math.floor((block.pos[0] - GRID_X) / CELL_SIZE);
-                            let blockY = Math.floor((block.pos[1] - GRID_Y) / CELL_SIZE);
-                            for (let [gx, gy] of cellsToClear) {
-                                for (let [dx, dy] of block.shape) {
-                                    if (blockX + dx === gx && blockY + dy === gy) {
-                                        block.clearCells(blockX, blockY);
-                                        return false;
-                                    }
-                                }
-                            }
-                            return true;
-                        });
-                        // Place the block
-                        this.pos[0] = GRID_X + candidateX * CELL_SIZE;
-                        this.pos[1] = GRID_Y + candidateY * CELL_SIZE;
-                        this.setCells(candidateX, candidateY);
+                    this.pos = [...this.prevPos];
+                    if (this.placed) {
+                        let prevX = Math.floor((this.prevPos[0] - GRID_X) / CELL_SIZE);
+                        let prevY = Math.floor((this.prevPos[1] - GRID_Y) / CELL_SIZE);
+                        this.setCells(prevX, prevY);
                         this.placed = true;
-                    } else {
-                        // Revert to previous position
-                        this.pos = [...this.prevPos];
-                        if (this.placed) {
-                            let prevX = Math.floor((this.prevPos[0] - GRID_X) / CELL_SIZE);
-                            let prevY = Math.floor((this.prevPos[1] - GRID_Y) / CELL_SIZE);
-                            this.setCells(prevX, prevY);
-                            this.placed = true;
-                        }
                     }
                 }
             }
@@ -364,22 +321,30 @@
                 COUNT_WIDTH = SCREEN_WIDTH - 20;
                 COUNT_HEIGHT = 100;
                 currentY += COUNT_HEIGHT + 20;
+                let buttonsY = currentY;
+                currentY += 60;
                 GRID_X = (SCREEN_WIDTH - gridWidth) / 2;
                 GRID_Y = currentY;
                 currentY += gridWidth + 20;
-                // Position button container
-                let buttonContainer = document.getElementById('buttonContainer');
-                buttonContainer.style.left = '10px';
-                buttonContainer.style.top = currentY + 'px';
-                buttonContainer.style.width = (SCREEN_WIDTH - 20) + 'px';
-                buttonContainer.style.height = '40px';
-                currentY += 60;
                 PALETTE_X = 10;
                 PALETTE_Y = currentY;
                 PALETTE_WIDTH = SCREEN_WIDTH - 20;
                 PALETTE_HEIGHT = 200;
                 currentY += PALETTE_HEIGHT + 20;
                 SCREEN_HEIGHT = currentY;
+
+                // Position buttons
+                let buttonWidth = (SCREEN_WIDTH - 30) / 2;
+                let importButton = document.getElementById('importButton');
+                importButton.style.left = '10px';
+                importButton.style.top = buttonsY + 'px';
+                importButton.style.width = buttonWidth + 'px';
+                importButton.style.height = '40px';
+                let exportButton = document.getElementById('exportButton');
+                exportButton.style.left = (10 + buttonWidth + 10) + 'px';
+                exportButton.style.top = buttonsY + 'px';
+                exportButton.style.width = buttonWidth + 'px';
+                exportButton.style.height = '40px';
             } else {
                 CELL_SIZE = 50;
                 SCREEN_HEIGHT = 650;
@@ -393,12 +358,18 @@
                 COUNT_Y = 10;
                 COUNT_WIDTH = 200;
                 COUNT_HEIGHT = SCREEN_HEIGHT - 70;
-                // Position button container
-                let buttonContainer = document.getElementById('buttonContainer');
-                buttonContainer.style.left = GRID_X + 'px';
-                buttonContainer.style.top = (GRID_Y + GRID_SIZE * CELL_SIZE + 20) + 'px';
-                buttonContainer.style.width = (GRID_SIZE * CELL_SIZE) + 'px';
-                buttonContainer.style.height = '40px';
+
+                // Position buttons (match CSS)
+                let importButton = document.getElementById('importButton');
+                importButton.style.left = '380px';
+                importButton.style.top = '545px';
+                importButton.style.width = '100px';
+                importButton.style.height = '40px';
+                let exportButton = document.getElementById('exportButton');
+                exportButton.style.left = '570px';
+                exportButton.style.top = '545px';
+                exportButton.style.width = '100px';
+                exportButton.style.height = '40px';
             }
 
             // Arrange palette blocks (relative positions)
@@ -430,7 +401,6 @@
             // Button event listeners
             document.getElementById('importButton').addEventListener('click', importBlocks);
             document.getElementById('exportButton').addEventListener('click', exportBlocks);
-            document.getElementById('toggleGridEditButton').addEventListener('click', toggleGridEditMode);
 
             // Prevent page scrolling during block drag on mobile
             document.addEventListener('touchmove', preventScrollDuringDrag, {passive: false});
@@ -460,12 +430,6 @@
             if (currentDragging && isMobile) {
                 e.preventDefault();
             }
-        }
-
-        function toggleGridEditMode() {
-            gridEditMode = !gridEditMode;
-            document.getElementById('toggleGridEditButton').innerText = `Grid Edit: ${gridEditMode ? 'On' : 'Off'}`;
-			document.getElementById('toggleGridEditButton').style.background = gridEditMode ? 'red' : 'green';
         }
 
         // p5.js draw
@@ -503,19 +467,6 @@
             for (let i = 0; i <= GRID_SIZE; i++) {
                 line(GRID_X, GRID_Y + i * CELL_SIZE, GRID_X + GRID_SIZE * CELL_SIZE, GRID_Y + i * CELL_SIZE);
                 line(GRID_X + i * CELL_SIZE, GRID_Y, GRID_X + i * CELL_SIZE, GRID_Y + GRID_SIZE * CELL_SIZE);
-            }
-            // Draw red crosses for disabled cells
-            stroke(RED);
-            strokeWeight(2);
-            for (let y = 0; y < GRID_SIZE; y++) {
-                for (let x = 0; x < GRID_SIZE; x++) {
-                    if (grid[y][x] === -1) {
-                        let cellX = GRID_X + x * CELL_SIZE;
-                        let cellY = GRID_Y + y * CELL_SIZE;
-                        line(cellX, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE);
-                        line(cellX + CELL_SIZE, cellY, cellX, cellY + CELL_SIZE);
-                    }
-                }
             }
         }
 
@@ -636,36 +587,6 @@
         let currentDragging = null;
 
         function mousePressed() {
-            if (gridEditMode) {
-                // Handle grid edit mode click
-                let cellX = Math.floor((mouseX - GRID_X) / CELL_SIZE);
-                let cellY = Math.floor((mouseY - GRID_Y) / CELL_SIZE);
-                if (cellX >= 0 && cellX < GRID_SIZE && cellY >= 0 && cellY < GRID_SIZE) {
-                    if (grid[cellY][cellX] === 1) {
-                        // Remove block occupying the cell
-                        placedBlocks = placedBlocks.filter(block => {
-                            if (block.placed) {
-                                let blockX = Math.floor((block.pos[0] - GRID_X) / CELL_SIZE);
-                                let blockY = Math.floor((block.pos[1] - GRID_Y) / CELL_SIZE);
-                                for (let [dx, dy] of block.shape) {
-                                    if (blockX + dx === cellX && blockY + dy === cellY) {
-                                        block.clearCells(blockX, blockY);
-                                        return false;
-                                    }
-                                }
-                            }
-                            return true;
-                        });
-                        grid[cellY][cellX] = -1; // Disable the cell
-                    } else {
-                        // Toggle cell state
-                        grid[cellY][cellX] = grid[cellY][cellX] === -1 ? 0 : -1;
-                    }
-                }
-                return;
-            }
-
-            // Normal block dragging
             for (let block of [...placedBlocks].reverse()) {
                 if (block.checkClick(mouseX, mouseY)) {
                     currentDragging = block;
@@ -725,107 +646,6 @@
                 countScrollY = constrain(countScrollY, 0, maxCountScrollY);
             }
         }
-		
-		function touchStarted() {
-			let touchX = touches[0] ? touches[0].x : mouseX;
-			let touchY = touches[0] ? touches[0].y : mouseY;
-
-			// Check if touch is over the toggleGridEditButton
-			let toggleButton = document.getElementById('toggleGridEditButton');
-			let rect = toggleButton.getBoundingClientRect();
-			if (
-				touchX >= rect.left &&
-				touchX <= rect.right &&
-				touchY >= rect.top &&
-				touchY <= rect.bottom
-			) {
-				// Let the button handle the event
-				return true;
-			}
-
-			if (gridEditMode) {
-				// Handle grid edit mode for touch
-				let cellX = Math.floor((touchX - GRID_X) / CELL_SIZE);
-				let cellY = Math.floor((touchY - GRID_Y) / CELL_SIZE);
-				if (cellX >= 0 && cellX < GRID_SIZE && cellY >= 0 && cellY < GRID_SIZE) {
-					if (grid[cellY][cellX] === 1) {
-						// Remove block occupying the cell
-						placedBlocks = placedBlocks.filter(block => {
-							if (block.placed) {
-								let blockX = Math.floor((block.pos[0] - GRID_X) / CELL_SIZE);
-								let blockY = Math.floor((block.pos[1] - GRID_Y) / CELL_SIZE);
-								for (let [dx, dy] of block.shape) {
-									if (blockX + dx === cellX && blockY + dy === cellY) {
-										block.clearCells(blockX, blockY);
-										return false;
-									}
-								}
-							}
-							return true;
-						});
-						grid[cellY][cellX] = -1; // Disable the cell
-					} else {
-						// Toggle cell state
-						grid[cellY][cellX] = grid[cellY][cellX] === -1 ? 0 : -1;
-					}
-				}
-				return false; // Prevent default touch behavior
-			}
-
-			// Normal block dragging for touch
-			for (let block of [...placedBlocks].reverse()) {
-				if (block.checkClick(touchX, touchY)) {
-					currentDragging = block;
-					block.startDrag(touchX, touchY);
-					return false;
-				}
-			}
-			for (let block of [...paletteBlocks].reverse()) {
-				if (block.checkClick(touchX, touchY, paletteScrollY)) {
-					let newX = PALETTE_X + block.pos[0];
-					let newY = PALETTE_Y + block.pos[1] - paletteScrollY;
-					let newBlock = new Block(block.shape, block.color, [newX, newY], block.name, block.anchorCells, false);
-					placedBlocks.push(newBlock);
-					currentDragging = newBlock;
-					newBlock.startDrag(touchX, touchY);
-					return false;
-				}
-			}
-			return true;
-		}
-		
-		function touchMoved() {
-			if (currentDragging) {
-				currentDragging.drag(touches[0] ? touches[0].x : mouseX, touches[0] ? touches[0].y : mouseY);
-				return false; // Prevent default scrolling
-			} else {
-				// Scroll palette if dragging in palette area
-				if (touches[0] && touches[0].x >= PALETTE_X && touches[0].x < PALETTE_X + PALETTE_WIDTH && touches[0].y >= PALETTE_Y && touches[0].y < PALETTE_Y + PALETTE_HEIGHT) {
-					paletteScrollY -= (touches[0].y - (touches[0].prevY || touches[0].y));
-					paletteScrollY = constrain(paletteScrollY, 0, maxScrollY);
-					return false;
-				}
-				// Scroll count panel if dragging in count area
-				if (touches[0] && touches[0].x >= COUNT_X && touches[0].x < COUNT_X + COUNT_WIDTH && touches[0].y >= COUNT_Y && touches[0].y < COUNT_Y + COUNT_HEIGHT) {
-					countScrollY -= (touches[0].y - (touches[0].prevY || touches[0].y));
-					countScrollY = constrain(countScrollY, 0, maxCountScrollY);
-					return false;
-				}
-			}
-			return true;
-		}
-
-		function touchEnded() {
-			if (currentDragging) {
-				currentDragging.stopDrag();
-				if (!currentDragging.placed) {
-					placedBlocks = placedBlocks.filter(block => block !== currentDragging);
-				}
-				currentDragging = null;
-				return false;
-			}
-			return true;
-		}
     </script>
 </body>
 </html>
